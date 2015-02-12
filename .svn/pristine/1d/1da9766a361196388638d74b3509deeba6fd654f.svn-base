@@ -1,0 +1,11 @@
+﻿package com.riambsoft.rsclient.core.http;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+public abstract class StoreService {
+
+	private Log logger = LogFactory.getLog(StoreService.class);
+	
+	
+}

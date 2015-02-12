@@ -1,0 +1,20 @@
+package com.riambsoft.kanban.service;
+
+import com.riambsoft.rsclient.core.annotation.RSMethod;
+import com.riambsoft.rsclient.core.annotation.RSParam;
+import com.riambsoft.rsclient.core.annotation.RSResult;
+
+public class TemplateService {
+
+	public TemplateService() {
+		super();
+		System.out.println("创建模版服务");
+	}
+
+	@RSMethod
+	@RSResult("c")
+	public String add(@RSParam("a") String a, @RSParam("b") String b) {
+		return a + b;
+	}
+
+}

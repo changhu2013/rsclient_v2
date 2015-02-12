@@ -1,0 +1,285 @@
+﻿package com.riambsoft.rsclient.core.http;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 封装Ext的Store参数
+ * 
+ * @author changhu
+ */
+public class StoreData {
+
+	private Map data;
+
+    private StoreMetaData metaData;
+
+	/**
+	 * 构造方法
+	 * 
+	 * @param data
+	 *            数据
+	 */
+ 	public StoreData(Map data) {
+		this.data = data == null ? new HashMap() : data;
+		Map metaData = (Map) this.data.get("metaData");
+		if (metaData != null) {
+			this.setMetaData(new StoreMetaData(metaData));
+		}
+	}
+
+	/**
+	 * 获取metaData
+	 * 
+	 * @return {@link StoreMetaData}
+	 */
+	public StoreMetaData getMetaData() {
+		return this.metaData;
+	}
+
+	/**
+	 * 获取数据List <br/>
+	 * read 操作 StoreData 中不包含数据，则返回null <br/>
+	 * create update destroy 操作 StoreData 中包含要操作的数据，通过该方法获取这些数据 <br/>
+	 * 
+	 * @return
+	 */
+	public List getData() {
+		return (List) this.data.get(this.metaData.getRoot());
+	}
+
+	/**
+	 * 根据键值获取data中数据。
+	 * 
+	 * @param key
+	 * @return {@link Object} object
+	 */
+	public Object get(String key) {
+		return this.data.get(key);
+	}
+
+	/**
+	 * 获取排序字段名称<br/>
+	 * 如果没有排序字段则返回null。<br/>
+	 * 
+	 * @return {@link String} sortField
+	 */
+	public String getSortField() {
+		return this.metaData.getSortField();
+	}
+
+	/**
+	 * 获取排序方式,返回值为 ASC 或 DESC 。
+	 * 
+	 * @return {@link String} dir
+	 */
+	public String getSortDir() {
+		return this.metaData.getSortDir();
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public String getGroupBy() {
+		return this.metaData.getGroupBy();
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public String getGroupDir() {
+		return this.metaData.getGroupDir();
+	}
+
+	/**
+	 * 获取排序信息
+	 * 
+	 * @return {@link String} sortInfo
+	 */
+	public String getSortInfo() {
+		String sortInfo = null;
+		String groupBy = this.getGroupBy();
+		String field = this.getSortField();
+		if (groupBy != null && !groupBy.equals(field)) {
+			String groupDir = this.getGroupDir();
+			sortInfo = groupBy + " " + groupDir;
+		}
+		if (field != null) {
+			return (sortInfo != null ? sortInfo + ", " : "") + field + " "
+					+ this.getSortDir();
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * 获取要查询数据开始位置
+	 * 
+	 * @return
+	 */
+	public Integer getStart() {
+		return this.metaData.getStart();
+	}
+
+	/**
+	 * 设置要查询数据开始位置
+	 * 
+	 */
+	public void setStart(Object start) {
+		this.metaData.setStart(start);
+	}
+
+	/**
+	 * 获取要查询数据条数限制数，如果返回为null则表示不限制。
+	 * 
+	 * @return
+	 */
+	public Integer getLimit() {
+		return this.metaData.getLimit();
+	}
+
+	/**
+	 * 设置要查询数据条数限制数，如果返回为null则表示不限制。
+	 * 
+	 */
+	public void setLimit(Object limit) {
+		this.metaData.setLimit(limit);
+	}
+
+	/**
+	 * 设置metaData
+	 * 
+	 * @param metaData
+	 */
+	public void setMetaData(StoreMetaData metaData) {
+		this.metaData = metaData;
+	}
+
+	/**
+	 * 设置数据List
+	 * 
+	 * @param data
+	 */
+	public void setData(List data) {
+		this.data.put(this.metaData.getRoot(), data);
+	}
+
+	/**
+	 * 设置合计数据Map
+	 * 
+	 * @param summaryData
+	 */
+	public void setSummaryData(Map summaryData){
+		this.data.put(this.metaData.getSummaryDataProperty(), summaryData);
+	}
+
+	/**
+	 * 获取合计数据Map
+	 * 
+	 * @param summaryData
+	 */
+	public Map getSummaryData(){
+		return (Map)this.data.get(this.metaData.getSummaryDataProperty());
+	}
+	
+	/**
+	 * 设置分组合计数据
+	 * 
+	 * @param groupSummaryData
+	 */
+	public void setGroupSummaryData(Map groupSummaryData){
+		this.data.put(this.metaData.getGroupSummaryDataProperty(), groupSummaryData);
+	}
+	
+	/**
+	 * 设置数据总数
+	 * 
+	 * @param total
+	 */
+	public void setTotal(int total) {
+		this.data.put(this.metaData.getTotalProperty(), new Integer(total));
+	}
+
+	/**
+	 * 设置成功标记
+	 */
+	public void setSuccess() {
+		this.data
+				.put(this.metaData.getSuccessProperty(), Boolean.valueOf(true));
+	}
+
+	/**
+	 * 设置失败标记
+	 */
+	public void setFailure() {
+		this.data.put(this.metaData.getSuccessProperty(), Boolean
+				.valueOf(false));
+	}
+
+	/**
+	 * 设置信息内容
+	 */
+	public void setMessage(String message) {
+		this.data.put(this.metaData.getMessageProperty(), message);
+	}
+
+	/**
+	 * 设置metaData fields
+	 * 
+	 * @param fields
+	 */
+	public void setMetaDataFields(List fields) {
+		this.metaData.setFields(fields);
+	}
+
+	/**
+	 * 设置查询头字段
+	 * 
+	 * @param fields
+	 */
+	public void setMetaDataQeuryFields(List fields) {
+		this.metaData.setQueryField(fields);
+	}
+
+	/**
+	 * 将字段 field 进行 ASC 排序
+	 * 
+	 * @param field
+	 */
+	public void setSortFieldASC(String field) {
+		this.metaData.setSortFieldASC(field);
+	}
+
+	/**
+	 * 将字段 field 进行 DESC 排序
+	 * 
+	 * @param field
+	 */
+	public void setSortFieldDESC(String field) {
+		this.metaData.setSortFieldDESC(field);
+	}
+
+	/**
+	 * 返回数据Map,该Map中包含所有要返回的数据。<br/>
+	 * 其中包括元数据metaData。
+	 * 
+	 * @return {@link Map} data
+	 */
+	public Map getDataMap() {
+		Object data = this.data.get(this.metaData.getRoot());
+		if (data == null) {
+			this.setData(new ArrayList());
+		}
+		if (this.metaData.isLoad() != true) {
+			this.data.remove("metaData");
+		} else {
+			this.data.put("metaData", this.metaData.getDataMap());
+		}
+		return this.data;
+	}
+
+}

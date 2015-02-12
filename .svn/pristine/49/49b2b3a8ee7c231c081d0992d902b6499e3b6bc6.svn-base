@@ -1,0 +1,10 @@
+package com.riambsoft.kanban.service;
+
+public class KanbanService {
+
+	public KanbanService() {
+		super();
+		System.out.println("创建看板服务");
+	}
+
+}

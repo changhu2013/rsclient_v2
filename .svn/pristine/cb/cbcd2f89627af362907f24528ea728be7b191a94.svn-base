@@ -1,0 +1,50 @@
+package com.riambsoft.rsclient.core.parse;
+
+import java.util.Iterator;
+import java.util.Map;
+
+import org.junit.Test;
+
+import com.riambsoft.rsclient.core.http.RSConfigParser;
+
+public class TestRSConfigParser {
+
+	@Test
+	public void test1() {
+
+		String ppnnn = "contextConfigLocation";
+
+		String methodName = "set" + ppnnn.substring(0, 1).toUpperCase()
+				+ ppnnn.substring(1);
+
+		System.out.println(methodName);
+
+	}
+
+	@Test
+	public void test2() {
+		RSConfigParser p = new RSConfigParser("rsclient.xml");
+		Map<String, Object> ps = p.getPlugins();
+		for (Iterator<String> iter = ps.keySet().iterator(); iter.hasNext();) {
+			String name = iter.next();
+			Object plugin = ps.get(name);
+			System.out.println(name);
+			System.out.println(plugin);
+		}
+	}
+
+	@Test
+	public void test3() {
+		RSConfigParser p = new RSConfigParser("rsclient.xml");
+		
+		Map<String, Object> ss = p.getServices();
+		
+		for (Iterator<String> iter = ss.keySet().iterator(); iter.hasNext();) {
+			String name = iter.next();
+			Object service = ss.get(name);
+
+			System.out.println(name);
+			System.out.println(service);
+		}
+	}
+}

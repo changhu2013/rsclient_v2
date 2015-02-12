@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rsclient>
+
+	<plugins>
+		<plugin id="spring"
+			class="com.riambsoft.rsclient.plugin.spring.SpringObjectFactory">
+			<property name="contextConfigLocation" value="spring.xml"></property>
+		</plugin>
+	</plugins>
+
+	<services>
+
+		<service id="kanban">
+			<bean class="com.riambsoft.kanban.service.KanbanService" />
+		</service>
+
+		<service id="template0">
+			<bean ref="spring:getBean" />
+		</service>
+
+		<service id="template1">
+			<bean ref="spring:getBean:templateService" />
+		</service>
+
+		<service id="template2">
+			<bean ref="spring:getBean:A:B:C" />
+		</service>
+
+	</services>
+</rsclient>

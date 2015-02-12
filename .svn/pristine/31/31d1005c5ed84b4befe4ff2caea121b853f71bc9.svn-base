@@ -1,0 +1,41 @@
+package com.riambsoft.rsclient.plugin.spring;
+
+import com.riambsoft.kanban.service.TemplateService;
+
+public class SpringObjectFactory {
+
+	private String contextConfigLocation;
+
+	public SpringObjectFactory() {
+		super();
+		System.out.println("创建BEAN工厂 ");
+	}
+
+	public void setContextConfigLocation(String contextConfigLocation) {
+		System.out.println("设置属性 " + contextConfigLocation);
+		this.contextConfigLocation = contextConfigLocation;
+	}
+
+	public Object getBean() {
+		System.out.println("无传入参数");
+		return new TemplateService();
+	}
+
+	public Object getBean(String a) {
+		System.out.println("传入参数:" + a);
+		return new TemplateService();
+	}
+
+	public Object getBean(String a, String b, String c) {
+		System.out.println("传入参数1:" + a);
+		System.out.println("传入参数2:" + b);
+		System.out.println("传入参数3:" + c);
+		return new TemplateService();
+	}
+
+	@Override
+	public String toString() {
+		return this.getClass().getName() + "  " + this.contextConfigLocation;
+	}
+
+}

@@ -1,0 +1,61 @@
+package com.riambsoft.rsclient.web.parse;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
+import net.sf.json.JSONObject;
+
+/**
+ * JSON解析器。继承自{@link Parser}
+ * 
+ * @author changhu
+ */
+public class JSONParser extends Parser {
+
+	/**
+	 * 将传入参数编码为JSON字符串
+	 * 
+	 * @param bean
+	 *            值对象
+	 * @return {@link String} 编码后的JSON字符串
+	 */
+	public String unmarshal(Object bean) throws ParserException {
+		try {
+			return JSONObject.fromObject(bean).toString();
+		} catch (JSONException e) {
+			try {
+				return JSONArray.fromObject(bean).toString();
+			} catch (JSONException ee) {
+				return "'" + bean.toString() + "'";
+			}
+		}
+	}
+
+	/**
+	 * 将传入对象编码为JSON字符串，并指定值对象名字
+	 * 
+	 * @param name
+	 *            值对象名称
+	 * @param bean
+	 *            值对象
+	 * @return {@link String} 编码后的JSON字符串
+	 */
+	public String unmarshal(Object bean, String name) throws ParserException {
+		return "{" + name + ":" + this.unmarshal(bean) + "}";
+	}
+
+	/**
+	 * 将Java bean转换为指定数据类型
+	 * 
+	 * @param bean
+	 *            值对象
+	 * 
+	 * @param clazz
+	 *            目标类
+	 */
+	public Object marshalToObj(Object bean, Class<?> clazz)
+			throws ParserException {
+		JSONObject jo = JSONObject.fromObject(bean);
+		return JSONObject.toBean(jo, clazz);
+	}
+
+}

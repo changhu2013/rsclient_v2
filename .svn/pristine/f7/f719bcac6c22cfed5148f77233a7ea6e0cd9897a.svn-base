@@ -1,0 +1,361 @@
+﻿package com.riambsoft.rsclient.web;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.riambsoft.rsclient.core.Constants;
+import com.riambsoft.rsclient.core.annotation.RSMethod;
+import com.riambsoft.rsclient.core.annotation.RSParam;
+import com.riambsoft.rsclient.core.annotation.RSResult;
+
+public abstract class StoreService {
+
+	private Log logger = LogFactory.getLog(StoreService.class);
+
+	private static NumberFormat nf = java.text.NumberFormat.getInstance();
+
+	@SuppressWarnings({ "rawtypes", "finally" })
+	@RSMethod
+	@RSResult("data")
+	public final Map read(@RSParam("params") Map params) {
+		StoreData data = new StoreData(params);
+		try {
+			this.read(data);
+			data.setSuccess();
+		} catch (Exception e) {
+			data.setFailure();
+			data.setMessage(e.getMessage());
+			logger.error(e.getMessage(), e);
+		} finally {
+			return data.getDataMap();
+		}
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked", "static-access" })
+	@RSMethod
+	@RSResult("data")
+	public final Map export(@RSParam("params") Map params,
+			@RSParam(Constants.RSCLIENT_CONTEXT_REALPATH) String realPath) {
+
+		nf.setGroupingUsed(false); // 是否采用分组
+
+		String path = realPath + "profile\\";
+		File f = new File(path);
+		if (!f.isDirectory()) {
+			f.mkdirs();
+		}
+
+		Map info = new HashMap();
+		StoreData data = new StoreData(params);
+		int step = 20000;
+		try {
+			List list = (List) data.get("header");
+			Map sumType = new HashMap();
+			LinkedHashMap map = new LinkedHashMap();
+			for (int i = 0; i < list.size(); i++) {
+				List l = (List) list.get(i);
+				if (l != null) {
+					int size = l.size();
+					if (size == 2) {
+						map.put(l.get(0), l.get(1));
+					} else if (size == 3) {
+						map.put(l.get(0) + "-" + l.get(2), l.get(1));
+						sumType.put(l.get(0) + "-" + l.get(2), l.get(2));
+					}
+				}
+			}
+
+			f = this.createCSVFileHead(map, path);
+
+			List mdata = new ArrayList();
+
+			if (data.get("paging") == "false" && data.getLimit() != null) {
+				int start = 0, limit = step;
+				data.setLimit(new Integer(limit));
+				data.setStart(new Integer(start));
+				this.read(data);
+				mdata = data.getData();
+				while (mdata.size() == step) {
+					start += step;
+					data.setStart(new Integer(start));
+					this.read(data);
+					this.createCSVFile(mdata, map, f);
+					mdata = data.getData();
+				}
+				Map sum = data.getSummaryData();
+				/*
+				 * if (sum != null) { mdata.add(sum); }
+				 */
+
+				Map summaryMap = new HashMap();
+
+				Iterator it = sum.entrySet().iterator();
+
+				while (it.hasNext()) {
+					Map.Entry m = (Map.Entry) it.next();
+					String key = (String) m.getKey();
+					Map mv = (Map) m.getValue();
+					Iterator iter = mv.entrySet().iterator();
+					while (iter.hasNext()) {
+						Map.Entry mm = (Map.Entry) iter.next();
+						summaryMap.put(key + "-" + mm.getKey(), mm.getValue());
+					}
+				}
+				if (summaryMap != null) {
+					mdata.add(summaryMap);
+				}
+
+				this.createCSVFile(mdata, map, f);
+			} else {
+				this.read(data);
+				mdata = data.getData();
+				if (sumType.size() > 0) {
+					Map sum = new HashMap();
+					Iterator iter = sumType.entrySet().iterator();
+					while (iter.hasNext()) {
+						Map.Entry entry = (Map.Entry) iter.next();
+						String key = (String) entry.getKey();
+						String tempKey = key.split("-")[0];
+						String val = (String) entry.getValue();
+						if (val.equals("sum")) {
+							String value = this.sum(mdata, tempKey) + "";
+							sum.put(key, "合计值:" + value);
+						} else if (val.equals("average")) {
+							String value = this.sum(mdata, tempKey);
+							double avg = Double.parseDouble(value)
+									/ mdata.size();
+							sum.put(key, "平均值:" + nf.format(avg));
+						} else if (val.equals("count")) {
+							sum.put(key, "共" + nf.format(mdata.size()) + "条");
+						} else if (val.equals("max")) {
+							sum.put(key, "最大值:" + this.max(mdata, tempKey));
+						} else if (val.equals("min")) {
+							sum.put(key, "最小值:" + this.min(mdata, tempKey));
+						}
+					}
+					mdata.add(sum);
+				}
+				this.createCSVFile(mdata, map, f);
+			}
+			// File file = this.createCSVFile(mdata, map, path);
+			info.put("filename", f.getName());
+			data.setSuccess();
+		} catch (Exception e) {
+			data.setFailure();
+			data.setMessage(e.getMessage());
+			logger.error(e.getMessage(), e);
+		}
+		return info;
+	}
+
+	@SuppressWarnings("rawtypes")
+	public String sum(List data, String key) {
+		nf.setGroupingUsed(false);
+		double sum = 0.0;
+		int length = data.size();
+		for (int i = 0; i < length; i++) {
+			String value = ((Map) data.get(i)).get(key).toString();
+			sum += Double.parseDouble(value);
+		}
+		return nf.format(sum);
+	}
+
+	@SuppressWarnings("rawtypes")
+	public String max(List data, String key) {
+		nf.setGroupingUsed(false);
+		double max = Double.NEGATIVE_INFINITY;
+		int length = data.size();
+		for (int i = 0; i < length; i++) {
+			String value = ((Map) data.get(i)).get(key).toString();
+			max = max > Double.parseDouble(value) ? max : Double
+					.parseDouble(value);
+		}
+		return nf.format(max);
+	}
+
+	@SuppressWarnings("rawtypes")
+	public String min(List data, String key) {
+		nf.setGroupingUsed(false);
+		double min = Double.POSITIVE_INFINITY;
+		int length = data.size();
+		for (int i = 0; i < length; i++) {
+			String value = ((Map) data.get(i)).get(key).toString();
+			min = min < Double.parseDouble(value) ? min : Double
+					.parseDouble(value);
+		}
+		return nf.format(min);
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static File createCSVFileHead(LinkedHashMap rowMapper,
+			String outPutPath) {
+		File csvFile = null;
+		BufferedWriter csvFileOutputStream = null;
+		try {
+			csvFile = File.createTempFile("temp", ".csv", new File(outPutPath));
+			// GB2312使正确读取分隔符","
+			csvFileOutputStream = new BufferedWriter(new OutputStreamWriter(
+					new FileOutputStream(csvFile), "GB2312"), 1024);
+			// 写入文件头部
+			for (Iterator propertyIterator = rowMapper.entrySet().iterator(); propertyIterator
+					.hasNext();) {
+				java.util.Map.Entry propertyEntry = (java.util.Map.Entry) propertyIterator
+						.next();
+				csvFileOutputStream.write("\""
+						+ propertyEntry.getValue().toString() + "\"");
+				if (propertyIterator.hasNext()) {
+					csvFileOutputStream.write(",");
+				}
+			}
+			csvFileOutputStream.newLine();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				csvFileOutputStream.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return csvFile;
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static File createCSVFile(List exportData, LinkedHashMap rowMapper,
+			File file) {
+		File csvFile = null;
+		BufferedWriter csvFileOutputStream = null;
+		try {
+			csvFile = file;
+			// GB2312使正确读取分隔符","
+			csvFileOutputStream = new BufferedWriter(new OutputStreamWriter(
+					new FileOutputStream(csvFile, true), "GB2312"), 1024);
+			// 写入文件内容
+			int index = 0;
+			for (Iterator iterator = exportData.iterator(); iterator.hasNext();) {
+				Object row = (Object) iterator.next();
+				index++;
+				for (Iterator propertyIterator = rowMapper.entrySet()
+						.iterator(); propertyIterator.hasNext();) {
+					java.util.Map.Entry propertyEntry = (java.util.Map.Entry) propertyIterator
+							.next();
+
+					String svalue = BeanUtils.getProperty(row, propertyEntry
+							.getKey().toString().split("-")[0]);
+
+					if (index == exportData.size()) {
+						svalue = BeanUtils.getProperty(row, propertyEntry
+								.getKey().toString());
+					}
+
+					svalue = svalue == null ? "" : svalue.toString();
+
+					nf.setGroupingUsed(false);
+
+					double formatValue = 0;
+					try {
+						formatValue = Double.parseDouble(svalue);
+						svalue = nf.format(formatValue).toString();
+					} catch (Exception e) {
+						svalue = e.getMessage();
+					}
+					csvFileOutputStream.write("\"" + svalue + "\"");
+					if (propertyIterator.hasNext()) {
+						csvFileOutputStream.write(",");
+					}
+				}
+				if (iterator.hasNext()) {
+					csvFileOutputStream.newLine();
+				}
+			}
+			csvFileOutputStream.flush();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				csvFileOutputStream.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return csvFile;
+	}
+
+	@SuppressWarnings("rawtypes")
+	@RSMethod
+	@RSResult("data")
+	public final Map create(@RSParam("params") Map params) {
+		StoreData data = new StoreData(params);
+		try {
+			this.create(data, data.getData());
+			data.setSuccess();
+		} catch (Exception e) {
+			data.setFailure();
+			data.setMessage(e.getMessage());
+			logger.error(e.getMessage(), e);
+		}
+		return data.getDataMap();
+	}
+
+	@SuppressWarnings("rawtypes")
+	@RSMethod
+	@RSResult("data")
+	public final Map update(@RSParam("params") Map params) {
+		StoreData data = new StoreData(params);
+		try {
+			this.update(data, data.getData());
+			data.setSuccess();
+		} catch (Exception e) {
+			data.setFailure();
+			data.setMessage(e.getMessage());
+			logger.error(e.getMessage(), e);
+		}
+		return data.getDataMap();
+	}
+
+	@SuppressWarnings("rawtypes")
+	@RSMethod
+	@RSResult("data")
+	public Map destroy(@RSParam("params") Map params) {
+		StoreData data = new StoreData(params);
+		try {
+			this.destroy(data, data.getData());
+			data.setSuccess();
+		} catch (Exception e) {
+			data.setFailure();
+			data.setMessage(e.getMessage());
+			logger.error(e.getMessage(), e);
+		}
+		return data.getDataMap();
+	}
+
+	public void read(StoreData data) throws Exception {
+	};
+
+	@SuppressWarnings("rawtypes")
+	public void create(StoreData data, List items) throws Exception {
+	};
+
+	@SuppressWarnings("rawtypes")
+	public void update(StoreData data, List items) throws Exception {
+	};
+
+	@SuppressWarnings("rawtypes")
+	public void destroy(StoreData data, List items) throws Exception {
+	};
+
+}

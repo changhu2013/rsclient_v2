@@ -1,0 +1,14 @@
+package com.riambsoft.rsclient.core;
+
+public class RsclientConstants {
+
+	/**
+	 * RSCLIENT配置文件地址
+	 */
+	public static final String RSCLIENT_CONFIG_LOCATION = "rsclientConfigLocation";
+
+	/**
+	 * 默认的RSCLIENT配置文件名称
+	 */
+	public static final String RSCLIENT_DEFAULT_CONFIG_FILE = "rsclient.xml";
+}
